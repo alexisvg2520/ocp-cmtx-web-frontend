@@ -1,9 +1,11 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
+from urllib.error import URLError, HTTPError
 import os
 
 API_HOST = os.getenv("API_HOST", "cmtx-api-public")
 API_PORT = int(os.getenv("API_PORT", "8080"))
+API_URL  = f"http://{API_HOST}:{API_PORT}/hello"
 
 INDEX = """<!doctype html>
 <html><head><meta charset="utf-8"><title>CMTX Web</title></head>
@@ -14,23 +16,42 @@ INDEX = """<!doctype html>
   <pre id="out"></pre>
 </body></html>"""
 
-class H(BaseHTTPRequestHandler):
+class Handler(BaseHTTPRequestHandler):
+    def _write(self, status: int, text: str, ctype: str = "text/plain; charset=utf-8"):
+        body = text.encode("utf-8", "replace")
+        self.send_response(status)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self):
-        if self.path in ["/", "/index.html"]:
-            b = INDEX.encode()
-            self.send_response(200); self.send_header("Content-Type","text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b); return
+        if self.path in ("/", "/index.html"):
+            self._write(200, INDEX, "text/html; charset=utf-8")
+            return
+
         if self.path == "/call":
             try:
-                with urlopen(f"http://{API_HOST}:{API_PORT}/hello", timeout=5) as r:
-                    data = r.read()
-                self.send_response(200); self.end_headers(); self.wfile.write(b"WEB ▶ " + data)
+                req = Request(API_URL, headers={"User-Agent": "cmtx-web-frontend"})
+                with urlopen(req, timeout=5) as resp:
+                    payload_bytes = resp.read()
+                payload_text = payload_bytes.decode("utf-8", "replace")
+                self._write(200, f"WEB ▶ {payload_text}")
+            except HTTPError as e:
+                self._write(502, f"front error: upstream HTTP {e.code}")
+            except URLError as e:
+                self._write(502, f"front error: upstream unreachable ({e.reason})")
             except Exception as e:
-                self.send_response(500); self.end_headers(); self.wfile.write(f"front error: {e}".encode())
+                self._write(500, f"front error: {e}")
             return
+
         if self.path == "/health":
-            self.send_response(200); self.end_headers(); self.wfile.write(b"ok"); return
-        self.send_response(404); self.end_headers()
+            self._write(200, "ok")
+            return
+
+        self._write(404, "not found")
 
 if __name__ == "__main__":
-    HTTPServer(("", 8080), H).serve_forever()
+    port = 8080
+    print(f"cmtx-web-frontend listening on {port}, calling {API_URL}")
+    HTTPServer(("", port), Handler).serve_forever()
