@@ -1,0 +1,13 @@
+namespace: ecuaalejo2013-dev
+name: cmtx-web-frontend
+image:
+  repository: docker.io/alexisvg2520/cmtx-web-frontend
+  tag: latest
+resources:
+  requests: { cpu: 30m, memory: 128Mi }
+  limits:   { cpu: 200m, memory: 256Mi }
+api:
+  host: cmtx-api-public
+  port: "8080"
+route:
+  host: ""   # vacío → host automático Sandbox
