@@ -17,7 +17,10 @@ spec:
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         ports: [{ containerPort: 8080 }]
         env:
-        - { name: API_HOST, value: "{{ .Values.api.host }}" }
-        - { name: API_PORT, value: "{{ .Values.api.port }}" }
+        env:
+          - name: API_HOST
+            value: "{{ .Values.env.API_HOST }}"
+          - name: API_PORT
+            value: "{{ .Values.env.API_PORT }}"
         securityContext: { runAsNonRoot: true }
         resources: {{- toYaml .Values.resources | nindent 10 }}

@@ -71,5 +71,7 @@ jobs:
         run: |
           helm upgrade --install cmtx-web-frontend ./chart \
             -n ecuaalejo2013-dev \
+            --set env.API_HOST=cmtx-api-public.ecuaalejo2013-dev.svc.cluster.local \
+            --set env.API_PORT=8080 \
             --set image.repository=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cmtx-web-frontend \
             --set image.tag=${{ github.sha }} \
