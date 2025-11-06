@@ -11,11 +11,11 @@ on:
   workflow_dispatch: {}
 
 concurrency:
-  group: ccmtx-web-frontend-${{ github.ref_name }}
+  group: cmtx-web-frontend-${{ github.ref_name }}
   cancel-in-progress: false
 
 env:
-  IMAGE_NAME: ccmtx-web-frontend
+  IMAGE_NAME: cmtx-web-frontend
 
 jobs:
   build:
@@ -67,8 +67,9 @@ jobs:
           insecure_skip_tls_verify: true
           namespace: ecuaalejo2013-dev
 
-      - name: Helm upgrade
+      - name: Deploy via Helm
         run: |
-          helm upgrade --install cmtx-web-frontend chart -n ecuaalejo2013-dev \
+          helm upgrade --install cmtx-web-frontend ./chart \
+            -n ecuaalejo2013-dev \
             --set image.repository=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cmtx-web-frontend \
-            --set image.tag=${{ github.sha }}
+            --set image.tag=${{ github.sha }} \
