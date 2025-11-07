@@ -1,7 +1,7 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
-import os
+import os, socket, contextlib
 
 API_HOST = os.getenv("API_HOST", "cmtx-api-public")
 API_PORT = int(os.getenv("API_PORT", "8080"))
@@ -17,6 +17,21 @@ INDEX = """<!doctype html>
 </body></html>"""
 
 class Handler(BaseHTTPRequestHandler):
+    def _diagnose_upstream(self) -> str:
+        lines = [f"API_URL={API_URL}"]
+        try:
+            infos = socket.getaddrinfo(API_HOST, API_PORT, proto=socket.IPPROTO_TCP)
+            uniq = sorted({f"{info[4][0]}:{info[4][1]}" for info in infos})
+            lines.append("DNS ✔ " + ", ".join(uniq))
+        except socket.gaierror as e:
+            lines.append(f"DNS ✖ {e}")
+        try:
+            with contextlib.closing(socket.create_connection((API_HOST, API_PORT), timeout=2)):
+                lines.append("TCP CONNECT ✔")
+        except OSError as e:
+            lines.append(f"TCP CONNECT ✖ {e}")
+        return "\n".join(lines)
+
     def _write(self, status: int, text: str, ctype: str = "text/plain; charset=utf-8"):
         body = text.encode("utf-8", "replace")
         self.send_response(status)
@@ -47,6 +62,10 @@ class Handler(BaseHTTPRequestHandler):
 
         if self.path == "/health":
             self._write(200, "ok")
+            return
+
+        if self.path == "/diag":
+            self._write(200, self._diagnose_upstream())
             return
 
         self._write(404, "not found")
