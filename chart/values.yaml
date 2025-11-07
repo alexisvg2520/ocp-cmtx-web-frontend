@@ -12,5 +12,5 @@ api:
 route:
   host: ""   # vacío → host automático Sandbox
 env:
-  API_HOST: "cmtx-api-public.ecuaalejo2013-dev.svc.cluster.local"
+  API_HOST: "172.30.238.36"
   API_PORT: "8080"
